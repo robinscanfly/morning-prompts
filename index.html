@@ -544,6 +544,57 @@ const prompts = [
   "What would a wise stranger see in five minutes that I've been missing for months?",
   "What would I notice if I read my own life like a book?",
   "What pattern would a therapist spot in this story I keep telling?",
+
+  // Active Affirmations — Energy & Momentum
+  "What would the version of me who woke up excited do next?",
+  "What's the move that would make tomorrow-me grateful?",
+  "If momentum were already here, what would I do with it?",
+  "What would I start if starting felt easy?",
+  "What would I do if I had just enough energy — and decided that was enough?",
+  "What's the version of this that actually sounds fun?",
+  "What would I do if I were playing instead of grinding?",
+  "What's one thing I could do in the next 10 minutes that would change the feel of this whole day?",
+  "What would the version of me who loves this work do right now?",
+  "What's the move that creates energy instead of spending it?",
+  "If I were running toward something instead of away from something, what would I do?",
+  "What does the version of me who finishes strong do at the halfway point?",
+  "What would I do if I treated this hour like it actually mattered?",
+  "What's the smallest action that would make me feel alive right now?",
+
+  // Active Affirmations — Confidence
+  "What would the version of me who trusts her own judgment do right now?",
+  "If I already knew I was capable of this, what's the first move?",
+  "What does the version of me who has already figured this out know that I'm forgetting?",
+  "What's the move the version of me who doesn't second-guess herself makes here?",
+  "What would I do if I genuinely believed my taste and judgment were the job?",
+  "What would the version of me who is known for her work ship today?",
+  "What does the version of me who belongs in this room do differently?",
+  "What would I do if I stopped waiting to feel more certain?",
+
+  // Active Affirmations — Self-Trust
+  "What do I already know here that I keep talking myself out of?",
+  "What would I do if I took my own read on this seriously?",
+  "What's the version of this where I trust the first instinct?",
+  "What would I decide if I stopped outsourcing the answer?",
+  "What does the version of me who has earned her opinion do with it?",
+  "What would I do if I believed that my pattern recognition is the edge?",
+  "What's obvious to me that I keep treating like it needs more evidence?",
+  "What does the version of me who has seen enough know about this?",
+  "What would I build if I trusted that my judgment is the product?",
+
+  // Active Affirmations — Clarity
+  "What's the one thing the sharpest version of me would ignore today?",
+  "What would I do if I only had two good hours — and I knew it?",
+  "What does the version of me who isn't trying to prove anything prioritize?",
+  "What would I cut if I were operating at full signal, zero noise?",
+  "What's obvious to the version of me who isn't overwhelmed?",
+
+  // Active Affirmations — Identity
+  "What would the version of me who is already financially free choose to build today?",
+  "What does the version of me who plays a long game do right now?",
+  "What would I do differently if I fully owned who I already am?",
+  "What does the version of me who stopped shrinking do today?",
+  "What would I do if I knew this is exactly where I'm supposed to be?",
 ];
 
 function shuffle(arr) {
@@ -555,11 +606,51 @@ function shuffle(arr) {
   return a;
 }
 
+// Active affirmation prompt indices (by category, for weighted drawing)
+// These are the last 40 prompts added. We identify them by their start index.
+const AA_START = 274; // index of first active affirmation prompt
+const AA_ENERGY    = [274,275,276,277,278,279,280,281,282,283,284,285,286,287]; // 14 prompts
+const AA_CONFIDENCE= [288,289,290,291,292,293,294,295];                         // 8 prompts
+const AA_SELFTRUST = [296,297,298,299,300,301,302,303,304];                     // 9 prompts
+const AA_CLARITY   = [305,306,307,308,309];                                     // 5 prompts
+const AA_IDENTITY  = [310,311,312,313,314];                                     // 5 prompts
+const AA_ALL = [...AA_ENERGY,...AA_CONFIDENCE,...AA_SELFTRUST,...AA_CLARITY,...AA_IDENTITY];
+const REFLECTIVE_ALL = prompts.map((_,i) => i).filter(i => !AA_ALL.includes(i));
+
+function pickWeightedIndex(excludeIdx) {
+  // ~28% chance of drawing from active affirmation bucket
+  const useAA = Math.random() < 0.28;
+  let pool;
+  if (useAA) {
+    // Internal AA weights: Energy 35%, Confidence 25%, Self-Trust 20%, Clarity 10%, Identity 10%
+    const r = Math.random();
+    if      (r < 0.35) pool = AA_ENERGY;
+    else if (r < 0.60) pool = AA_CONFIDENCE;
+    else if (r < 0.80) pool = AA_SELFTRUST;
+    else if (r < 0.90) pool = AA_CLARITY;
+    else               pool = AA_IDENTITY;
+  } else {
+    pool = REFLECTIVE_ALL;
+  }
+  const filtered = pool.filter(i => i !== excludeIdx);
+  return filtered[Math.floor(Math.random() * filtered.length)];
+}
+
 let queue = [];
 let currentIndex = -1;
 
 function refillQueue(excludeIdx) {
-  queue = shuffle(prompts.map((_, i) => i).filter(i => i !== excludeIdx));
+  // Build a weighted queue of ~30 draws to avoid short-term repeats
+  const seen = new Set([excludeIdx]);
+  queue = [];
+  for (let i = 0; i < 30; i++) {
+    let idx;
+    let attempts = 0;
+    do { idx = pickWeightedIndex(excludeIdx); attempts++; }
+    while (seen.has(idx) && attempts < 20);
+    seen.add(idx);
+    queue.push(idx);
+  }
 }
 
 function nextPrompt(animate = true) {
